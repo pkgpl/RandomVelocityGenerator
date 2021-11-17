@@ -2,15 +2,16 @@ import numpy as np
 
 
 class LayerDepthGenerator:
-    def __init__(self, nlayers, ny, random_seed=None):
+    def __init__(self, nlayers, ny, random_seed=None,
+            top=0.2, bottom=0.9, minsplit=0.08):
         self.rng = np.random.default_rng(random_seed)
         self.nlayers = nlayers
         self.ny = ny
         # interface
         self.intf_nround=2
-        self.top=0.2
-        self.bottom=0.9
-        self.minsplit=0.08
+        self.top=top
+        self.bottom=bottom
+        self.minsplit=minsplit
         
     def _base_layer_depth(self):
         layer_depth = np.sort(self.top + self.rng.uniform(low=0,high=self.bottom-self.top,size=self.nlayers-1))
@@ -51,7 +52,7 @@ class VelocityGenerator:
         self.layer_depth = layer_depth_generator.generate()
         self.ninterface = len(self.layer_depth)
         
-    def _gen_flat_layers(self):
+    def _gen_layers(self):
         layers = np.zeros((self.ninterface,self.nx),dtype=np.int32)
         layers[-1,:]=self.ny
         for i in range(1,self.ninterface-1):
@@ -73,7 +74,7 @@ class VelocityGenerator:
     def velocity(self):
         self._gen_vels()
         self._gen_layer_depth()
-        self._gen_flat_layers()
+        self._gen_layers()
         return self.fill_velocity()
 
 
