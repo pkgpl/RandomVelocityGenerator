@@ -2,7 +2,7 @@ import setuptools
 
 setuptools.setup(
         name='velgen',
-        version='0.1',
+        version='0.2',
         description='Random seismic velocity generator',
         author='Wansoo Ha',
         author_email='wansooha@gmail.com',
