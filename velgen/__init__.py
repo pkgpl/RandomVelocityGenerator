@@ -1,4 +1,7 @@
-from .flat import flat_generator
-from .fold import cosine_fold_generator
-from .fault import linear_fault_generator
-from .salt import gaussian_salt_generator
+import numpy as np
+from .model import Random, Model, Pipeline
+from .layer import FlatLayer, DippingLayer, LinearWaterLayer
+from .fold import CosineFold
+from .fault import LinearFault
+from .salt import GaussianSalt, EllipticSalt
+
