@@ -31,14 +31,14 @@ class Random:
 
     def array_interval(self, low, high, size, minsplit, prepend=None, append=None, dtype=np.float32):
         sort = True
-        layer = self.array(low,high,size,sort,prepend,append,dtype)
-        diff = layer[1:] - layer[:-1]
+        interface = self.array(low,high,size,sort,prepend,append,dtype)
+        diff = interface[1:] - interface[:-1]
         self.count=1
         while diff.min() < minsplit:
-            layer = self.array(low,high,size,sort,prepend,append,dtype)
-            diff = layer[1:] - layer[:-1]
+            interface = self.array(low,high,size,sort,prepend,append,dtype)
+            diff = interface[1:] - interface[:-1]
             self.count += 1
-        return layer
+        return interface
 
     def perturb(self, arr, max_pert, fix_top=False, fix_bottom=False):
         arr_copy = arr.copy()
@@ -56,7 +56,7 @@ class Model:
         self.max_pert = max_pert
         self.shape = shape
         self.nx, self.ny = shape
-        self.layer = None
+        self.interface = None
         self.velseed = np.array(velseed)
         if self.velseed.ndim == 1:
             self.veltype = 'constant'
@@ -70,16 +70,16 @@ class Model:
     def fill_const_velocity(self,velseed):
         for ix in range(self.nx):
             for i in range(self.nlayers):
-                iy0 = self.layer[i,ix]
-                iy1 = self.layer[i+1,ix]
+                iy0 = self.interface[i,ix]
+                iy1 = self.interface[i+1,ix]
                 self.velocity[ix,iy0:iy1] = velseed[i]
         self.filled = True
 
     def fill_vlin_velocity(self,velseed):
         for ix in range(self.nx):
             for i in range(self.nlayers):
-                iy0 = self.layer[i,ix]
-                iy1 = self.layer[i+1,ix]
+                iy0 = self.interface[i,ix]
+                iy1 = self.interface[i+1,ix]
                 self.velocity[ix,iy0:iy1] = np.linspace(velseed[i,0],velseed[i,1],iy1-iy0)
         self.filled = True
 
@@ -96,12 +96,12 @@ class Model:
         else:
             errexit("Wrong velocity shape: expected %s, got %s"%(self.shape, vel.shape))
 
-    def set_layer(self, layer):
-        layer_shape = (self.nlayers+1, self.nx)
-        if layer.shape == layer_shape:
-            self.layer = layer
+    def set_interface(self, interface):
+        interface_shape = (self.nlayers+1, self.nx)
+        if interface.shape == interface_shape:
+            self.interface = interface
         else:
-            errexit("Wrong layer shape: expected %s, got %s"%(layer_shape, layer.shape))
+            errexit("Wrong interface shape: expected %s, got %s"%(interface_shape, interface.shape))
 
     def add_history(self, key, val):
         self.history[key].append(val)
@@ -137,4 +137,11 @@ class Pipeline:
             m = step.generate(m)
         return m.generate()
 
+
+class Identity:
+    def __init__(self):
+        pass
+
+    def generate(self, model):
+        return model
 

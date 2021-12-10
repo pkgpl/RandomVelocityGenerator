@@ -5,7 +5,7 @@ from .model import Random
 class GaussianSalt:
     def __init__(self, vsalt=4.5, x0=None, height=None, width=None, eff_space=0.02, minspace=0.01,
             x0_range=(0.2,0.8), height_range=(0.2,0.6), width_range=(0.1,0.2),
-            penetrate_layer=None, random_seed=None, vround=4):
+            penetrate_interface=None, random_seed=None, vround=4):
         self.random = Random(random_seed, vround)
         self.vsalt=vsalt
 
@@ -18,7 +18,7 @@ class GaussianSalt:
         self.x0_range = x0_range
         self.height_range = height_range
         self.width_range = width_range
-        self.penetrate_layer = penetrate_layer
+        self.penetrate_interface = penetrate_interface
         self.downshift = 0.02
 
     def _salt(self, A, sigma, x0, nx, ny):
@@ -26,9 +26,9 @@ class GaussianSalt:
         d1 = 2 * sigma**2
         return A * np.exp(-(x-x0)**2/d1) - self.downshift * ny
 
-    def _add_salt_to_layers(self,layer,nx,ny):
-        layers_with_salt=layer.copy()
-        ninterface = len(layer)
+    def _add_salt_to_interface(self,interface,nx,ny):
+        interface_with_salt=interface.copy()
+        ninterface = len(interface)
         neff_space = self.eff_space * ny
         iminspace = self.minspace * ny
 
@@ -40,40 +40,40 @@ class GaussianSalt:
         salt_top = ny - s
         self.salt_top = salt_top
 
-        if self.penetrate_layer is None:
-            penetrate_layer = self.random.choice([True,False])
+        if self.penetrate_interface is None:
+            penetrate_interface = self.random.choice([True,False])
         else:
-            penetrate_layer = self.penetrate_layer
-        if penetrate_layer:
+            penetrate_interface = self.penetrate_interface
+        if penetrate_interface:
             for i in range(1,ninterface-1):
-                hdiff = salt_top[:] - layer[i,:]
+                hdiff = salt_top[:] - interface[i,:]
                 if hdiff.min() < neff_space:
                     height = abs(hdiff.min()) * (i/ninterface)
                     scale = 1 + (ninterface - i)/ninterface
                     swidth = width * scale
                     si = self._salt(height,swidth,x0,nx,ny)
-                    layers_with_salt[i] -= si.astype(np.int32)
+                    interface_with_salt[i] -= si.astype(np.int32)
         else:
             for i in range(1,ninterface-1):
-                hdiff = salt_top[:] - layer[i,:]
+                hdiff = salt_top[:] - interface[i,:]
                 if hdiff.min() < neff_space:
                     height = abs(hdiff.min()) + iminspace
                     scale = 1 + (ninterface - i)/ninterface
                     swidth = width * scale
                     si = self._salt(height,swidth,x0,nx,ny)
-                    layers_with_salt[i] -= si.astype(np.int32)
-            layers_with_salt = self._adjust_layers(layers_with_salt,iminspace)
+                    interface_with_salt[i] -= si.astype(np.int32)
+            interface_with_salt = self._adjust_interface(interface_with_salt,iminspace)
 
-        return layers_with_salt
+        return interface_with_salt
         
-    def _adjust_layers(self,layer,iminspace):
-        ninterface = len(layer)
+    def _adjust_interface(self,interface,iminspace):
+        ninterface = len(interface)
         for i in reversed(range(1,ninterface)):
-            hdiff = layer[i]-layer[i-1]
+            hdiff = interface[i]-interface[i-1]
             dmin = hdiff.min()
             if dmin < iminspace:
-                layer[i-1,:] = layer[i-1,:] - abs(dmin) - int(iminspace)
-        return layer
+                interface[i-1,:] = interface[i-1,:] - abs(dmin) - int(iminspace)
+        return interface
 
     def _add_salt_to_velocity(self,vel,salt_top,vsalt):
         nx = len(salt_top)
@@ -84,7 +84,7 @@ class GaussianSalt:
     def generate(self, model):
         nx,ny = model.shape
         # add salt
-        model.set_layer(self._add_salt_to_layers(model.layer,nx,ny))
+        model.set_interface(self._add_salt_to_interface(model.interface,nx,ny))
         vel = model.generate(force_fill=True)
         model.add_history('gaussian_salt_top',self.salt_top)
         model.add_history('gaussian_vsalt',self.vsalt)
@@ -147,6 +147,10 @@ class EllipticSalt:
             a_range, b_range = self.a_range, self.b_range
         a= self.a or self.random.uniform(*a_range)*nx
         b= self.b or self.random.uniform(*b_range)*ny
+
+        # salt does not penetrate the first interface
+        if y0 - b < model.interface[1].min():
+            y0 += model.interface[1].min()
 
         mask = self.mask(nx,ny,x0,y0,a,b)
         vel = model.generate()

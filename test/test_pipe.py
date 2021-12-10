@@ -126,7 +126,7 @@ def test_gom3():
     model = Model(shape, velseed)
     pipe = Pipeline([
         DippingLayer(y_range=(0.1,0.9),minsplit=0.01),
-        GaussianSalt(width_range=(wmin,wmax), height_range=(hmin,hmax), penetrate_layer=False),
+        GaussianSalt(width_range=(wmin,wmax), height_range=(hmin,hmax), penetrate_interface=False),
         LinearWaterLayer(y_range=(0.1,0.2))
         ])
     vel = pipe.generate(model)
@@ -135,7 +135,7 @@ def test_gom3():
     model = Model(shape, velseed)
     pipe = Pipeline([
         DippingLayer(y_range=(0.1,0.9),minsplit=0.01),
-        GaussianSalt(width_range=(wmin,wmax), height_range=(hmin,hmax), penetrate_layer=True),
+        GaussianSalt(width_range=(wmin,wmax), height_range=(hmin,hmax), penetrate_interface=True),
         LinearWaterLayer(y_range=(0.1,0.2))
         ])
     vel = pipe.generate(model)

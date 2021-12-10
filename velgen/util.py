@@ -1,5 +1,5 @@
 import numpy as np
-from .model import Random, Model, Pipeline
+from .model import Random, Model, Pipeline, Identity
 from .layer import FlatLayer, DippingLayer, LinearWaterLayer
 from .fold import CosineFold
 from .fault import LinearFault
@@ -62,7 +62,14 @@ def gaussian_elliptic_salt_generator(shape, velseed, vsalt=4.5):
         ], model)
     return pipe
 
-def gom_generator(shape, dz, velseed=None, vsalt=4.5, v0=1.5, vwater=1.5, nlayers=None, k=None, generate=False):
+
+def choice(container):
+    random = Random()
+    i = random.choice(np.arange(len(container),dtype=np.int32))
+    return container[i]
+
+
+def gom_generator(shape, dz, velseed=None, vsalt=4.5, v0=1.5, vwater=1.5, nlayers=None, k=None, max_nfaults=3, generate=False):
     random = Random()
     zmax = shape[1]*dz
     if velseed is None:
@@ -75,18 +82,32 @@ def gom_generator(shape, dz, velseed=None, vsalt=4.5, v0=1.5, vwater=1.5, nlayer
     model = Model(shape, _velseed)
 
     _vsalt = vsalt or random.uniform(low=4.5, high=5.0)
+    # layer
+    layer1 = [FlatLayer(y_range=(0.1,0.9), minsplit=0.01)]
+    layer2 = [DippingLayer(y_range=(0.1,0.9), minsplit=0.01)]
+    layers = [layer1, layer2]
+    layer = choice(layers)
+
+    # fold
+    fold0 = [Identity()]
+    fold1 = [CosineFold()]
+    folds = [fold0, fold1]
+    fold = choice(folds)
+
     # salt type
+    no_salt = [Identity()]
+    fault = [LinearFault(max_nfaults=max_nfaults, vshift_range=(0.05,0.1))]
     salt1 = [GaussianSalt(vsalt=_vsalt, width_range=(0.05,0.1), height_range=(0.4,0.6))]
     salt2 = salt1 * 2
     salt3 = [EllipticSalt(vsalt=_vsalt)]
     salt4 = salt3 * 2
     salt5 = salt1 + salt3
-    salts = [salt1, salt2, salt3, salt4, salt5]
+    salts = [no_salt, fault, salt1, salt2, salt3, salt4, salt5]
+    salt = choice(salts)
 
-    isalt = random.choice(np.arange(len(salts),dtype=np.int32))
-    salt = salts[isalt]
+    waterlayer = [LinearWaterLayer(vwater=vwater, y_range=(0.1,0.2))]
 
-    steps = [DippingLayer(y_range=(0.1,0.9), minsplit=0.01)] + salt + [LinearWaterLayer(vwater=vwater, y_range=(0.1,0.2))]
+    steps = layer + fold + salt + waterlayer
     pipe = Pipeline(steps, model)
     if generate:
         return pipe.generate()

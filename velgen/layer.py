@@ -18,8 +18,8 @@ class FlatLayer:
 
         depth = self.depth or self.random.array_interval(*iy_range,ninterf,iminsplit, prepend=0,append=ny)
                 
-        layer = np.repeat(depth, nx)
-        model.set_layer(np.reshape(layer, (len(depth), nx)).astype(np.int32))
+        interface = np.repeat(depth, nx)
+        model.set_interface(np.reshape(interface, (len(depth), nx)).astype(np.int32))
         model.add_history('flat_depth',depth)
         return model
 
@@ -43,10 +43,10 @@ class DippingLayer:
         right = self.right or self.random.array_interval(*iy_range,ninterf,iminsplit, prepend=0,append=ny)
 
         nb = len(left)
-        layer = np.zeros((nb, nx),dtype=np.int32)
+        interface = np.zeros((nb, nx),dtype=np.int32)
         for i in range(nb):
-            layer[i,:] = np.linspace(left[i],right[i],nx)
-        model.set_layer(layer.astype(np.int32))
+            interface[i,:] = np.linspace(left[i],right[i],nx)
+        model.set_interface(interface.astype(np.int32))
         model.add_history('dip_left', left)
         model.add_history('dip_right',right)
         return model
